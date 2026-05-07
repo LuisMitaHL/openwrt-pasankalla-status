@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estado del Router</title>
+    <link rel="stylesheet" href="/status/css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <h1><span class="icon">&#9881;</span> Estado del Router</h1>
+            <div class="header-controls">
+                <div class="mode-toggle">
+                    <button id="mode-basic" class="mode-btn active">Básico</button>
+                    <button id="mode-advanced" class="mode-btn">Avanzado</button>
+                </div>
+                <span id="last-update" class="last-update"></span>
+                <span id="countdown" class="last-update"></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Container -->
+    <div class="container">
+
+        <!-- Loading -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <div>Cargando datos&hellip;</div>
+        </div>
+
+        <!-- Error -->
+        <div id="error" class="error hidden">
+            <div class="icon">&#9888;</div>
+            <div class="error-msg">No se pueden obtener los datos.</div>
+        </div>
+
+        <!-- Content -->
+        <div id="content" class="hidden">
+
+            <!-- Summary Cards -->
+            <div id="summary-section" class="section">
+                <div id="summary" class="summary"></div>
+            </div>
+
+            <!-- Wireless Interfaces -->
+            <div id="interfaces-section" class="section">
+                <div class="section-title">&#9881; Interfaces Inalámbricas</div>
+                <div id="interfaces" class="iface-grid"></div>
+            </div>
+
+            <!-- DHCP Leases -->
+            <div id="dhcp-section" class="section">
+                <div class="section-title">&#9881; Concesiones DHCP</div>
+                <div id="dhcp"></div>
+            </div>
+
+            <!-- SQM -->
+            <div id="sqm-section" class="section">
+                <div class="section-title">&#9881; SQM</div>
+                <div id="sqm"></div>
+            </div>
+
+            <!-- Traffic -->
+            <div id="traffic-section" class="section">
+                <div class="section-title">&#9881; Tráfico</div>
+                <div id="traffic"></div>
+            </div>
+
+            <!-- Advanced Panel -->
+            <div id="advanced" class="advanced-panel hidden">
+                <div class="section-title">&#9881; Información Avanzada</div>
+                <pre id="advanced-pre"></pre>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="/status/js/app.js"></script>
+</body>
+</html>
