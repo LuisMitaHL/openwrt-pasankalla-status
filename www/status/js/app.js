@@ -168,12 +168,19 @@
                     hiddenSsids: [],
                     clients: 0,
                     maxClients: 0,
-                    freq: 0
+                    freq: 0,
+                    hasSta: false
                 };
             }
             var group = phyMap[phy];
             // Always exclude OWE SSIDs entirely
             //if (iface.encryption && /owe/i.test(iface.encryption)) continue;
+
+            // If this interface is a Client/STA, hide the entire phy and don't sum clients
+            if (iface.mode === 'sta') {
+                group.hasSta = true;
+                continue;
+            }
 
             group.clients += (iface.clients || 0);
             // Track the frequency (use the first non-0 value)
@@ -196,6 +203,8 @@
         var html = '';
         for (var phy in phyMap) {
             var g = phyMap[phy];
+            // Skip phys that have a STA interface — hide entirely in basic view
+            if (g.hasSta) continue;
             var ssidList;
             if (g.visibleSsids.length > 0) {
                 ssidList = g.visibleSsids.join(', ');
@@ -348,6 +357,10 @@
                     '<div class="iface-detail-row">' +
                         '<span class="iface-detail-label">Bitrate</span>' +
                         '<span class="iface-detail-value">' + escHtml(iface.bitrate || 'N/A') + '</span>' +
+                    '</div>' +
+                    '<div class="iface-detail-row">' +
+                        '<span class="iface-detail-label">Modo</span>' +
+                        '<span class="iface-detail-value">' + escHtml(iface.mode || '?') + '</span>' +
                     '</div>' +
                     '<div class="iface-detail-row">' +
                         '<span class="iface-detail-label">Cifrado</span>' +

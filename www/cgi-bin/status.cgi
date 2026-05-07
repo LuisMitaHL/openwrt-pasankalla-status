@@ -95,6 +95,15 @@ for iface in $iface_list; do
         channel=$(echo "$info" | grep "Channel:" | awk '{print $2}')
         freq=$(echo "$info" | grep "Channel:" | awk '{print $5}' | tr -d '().')
         mode=$(echo "$info" | grep "Mode:" | awk '{print $2}')
+        # Normalize mode to ap|sta
+        case "$mode" in
+            Master) mode="ap" ;;
+            Client|Managed) mode="sta" ;;
+            Ad-Hoc) mode="adhoc" ;;
+            Monitor) mode="monitor" ;;
+            Mesh*) mode="mesh" ;;
+            *) mode=$(echo "$mode" | tr '[:upper:]' '[:lower:]') ;;
+        esac
         # Get bitrate
         bitrate=$(echo "$info" | grep "Bit Rate:" | awk '{print $3, $4}')
         # Get encryption
