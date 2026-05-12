@@ -194,7 +194,7 @@ for iface in $iface_list; do
     # Determine max clients based on band and wifi type
     max_clients=32
     if [ "$band" = "2.4GHz" ]; then
-        max_clients=32
+        max_clients=64
     elif [ "$band" = "5GHz" ]; then
         if echo "$wifi_type" | grep -q "6"; then
             max_clients=200
@@ -211,10 +211,14 @@ for iface in $iface_list; do
     rx_bytes=0
     tx_bytes=0
     if [ -n "$proc_net" ]; then
-        line=$(echo "$proc_net" | grep "$iface:" 2>/dev/null)
+        line=$(echo "$proc_net" | grep "$iface:" 2>/dev/null | head -n 1)
         if [ -n "$line" ]; then
-            rx_bytes=$(echo "$line" | awk '{print $2}')
-            tx_bytes=$(echo "$line" | awk '{print $9}')
+    rx_bytes=$(echo "$line" | awk '{print $2}')
+    tx_bytes=$(echo "$line" | awk '{print $9}')
+    rx_bytes=$(echo "$rx_bytes" | sed 's/[^0-9]//g')
+    tx_bytes=$(echo "$tx_bytes" | sed 's/[^0-9]//g')
+    [ -z "$rx_bytes" ] && rx_bytes=0
+    [ -z "$tx_bytes" ] && tx_bytes=0
         fi
     fi
     rx_gb=$(awk "BEGIN {printf \"%.2f\", $rx_bytes / 1073741824}" 2>/dev/null)
