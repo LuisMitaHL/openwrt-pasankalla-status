@@ -283,27 +283,49 @@ fi
 [ -z "$dhcp_json" ] && dhcp_json=""
 
 # --- SQM Status ---
-sqm_enabled="false"
-sqm_iface=""
-sqm_download=""
-sqm_upload=""
+# Collect all SQM queue configurations into a JSON array
+sqm_list=""
+sqm_first=true
 
 if [ -f /etc/config/sqm ]; then
-    # Parse /etc/config/sqm
-    in_section=false
+    # Parse /etc/config/sqm, collecting each queue section
+    sqm_enabled="false"
+    sqm_iface=""
+    sqm_download=""
+    sqm_upload=""
+    sqm_qdisc=""
+
     while IFS= read -r line; do
         case "$line" in
             *config*queue*)
-                in_section=true
+                # Emit previous section if it was valid and interface was set
+                if [ -n "$sqm_iface" ]; then
+                    if [ "$sqm_first" = true ]; then
+                        sqm_first=false
+                    else
+                        sqm_list="$sqm_list,"
+                    fi
+                    sqm_list="$sqm_list$(cat << SQMEOF
+{
+    "enabled": $sqm_enabled,
+    "interface": "${sqm_iface}",
+    "download_speed": "${sqm_download}",
+    "upload_speed": "${sqm_upload}",
+    "qdisc": "${sqm_qdisc}"
+}
+SQMEOF
+)"
+                fi
+                # Reset for new section
+                sqm_enabled="false"
                 sqm_iface=""
-                sqm_dl=""
-                sqm_ul=""
+                sqm_download=""
+                sqm_upload=""
+                sqm_qdisc=""
                 ;;
             *option*enabled*)
                 val=$(echo "$line" | awk '{print $3}' | tr -d "'\"")
-                if [ "$val" = "1" ]; then
-                    sqm_enabled="true"
-                fi
+                [ "$val" = "1" ] && sqm_enabled="true"
                 ;;
             *option*interface*)
                 sqm_iface=$(echo "$line" | awk '{print $3}' | tr -d "'\"")
@@ -314,19 +336,47 @@ if [ -f /etc/config/sqm ]; then
             *option*upload*)
                 sqm_upload=$(echo "$line" | awk '{print $3}' | tr -d "'\"")
                 ;;
+            *option*qdisc*)
+                sqm_qdisc=$(echo "$line" | awk '{print $3}' | tr -d "'\"")
+                ;;
+            *option*script*)
+                # Fallback: extract qdisc name from script filename
+                script_val=$(echo "$line" | awk '{print $3}' | tr -d "'\"")
+                case "$script_val" in
+                    *cake*) sqm_qdisc="cake" ;;
+                    *fq_codel*) sqm_qdisc="fq_codel" ;;
+                    *nfq_codel*) sqm_qdisc="nfq_codel" ;;
+                    *fq_pie*) sqm_qdisc="fq_pie" ;;
+                    *pie*) sqm_qdisc="pie" ;;
+                    *) sqm_qdisc="$script_val" ;;
+                esac
+                ;;
         esac
     done < /etc/config/sqm
-fi
 
-sqm_json=$(cat << EOF
+    # Emit last section if it has an interface
+    if [ -n "$sqm_iface" ]; then
+        if [ "$sqm_first" = true ]; then
+            sqm_first=false
+        else
+            sqm_list="$sqm_list,"
+        fi
+        sqm_list="$sqm_list$(cat << SQMEOF
 {
     "enabled": $sqm_enabled,
-    "interface": "${sqm_iface:-}",
-    "download_speed": "${sqm_download:-}",
-    "upload_speed": "${sqm_upload:-}"
+    "interface": "${sqm_iface}",
+    "download_speed": "${sqm_download}",
+    "upload_speed": "${sqm_upload}",
+    "qdisc": "${sqm_qdisc}"
 }
-EOF
-)
+SQMEOF
+)"
+    fi
+fi
+
+# If no queue sections were found, output an empty array
+[ -z "$sqm_list" ] && sqm_list=""
+sqm_json="[$sqm_list]"
 
 # --- Advanced mode: run wifi-suite.sh ---
 advanced_text=""

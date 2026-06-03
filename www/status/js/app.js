@@ -404,32 +404,44 @@
     }
 
     function renderSqm(sqm) {
-        if (!sqm) {
+        // sqm is now a JSON array of queue objects
+        if (!sqm || !Array.isArray(sqm) || sqm.length === 0) {
             el.sqm.innerHTML = '<div class="sqm-card"><div class="sqm-status"><span class="sqm-dot disabled"></span> SQM: No disponible</div></div>';
             return;
         }
 
-        var enabled = sqm.enabled === true;
-        var dotClass = enabled ? 'enabled' : 'disabled';
-        var statusText = enabled ? 'Habilitado' : 'Deshabilitado';
-        var speedHtml = '';
+        var html = '';
+        for (var i = 0; i < sqm.length; i++) {
+            var q = sqm[i];
+            var enabled = q.enabled === true;
+            var dotClass = enabled ? 'enabled' : 'disabled';
+            var statusText = enabled ? 'Habilitado' : 'Deshabilitado';
+            var speedHtml = '';
+            var qdiscHtml = '';
 
-        if (enabled && (sqm.download_speed || sqm.upload_speed)) {
-            speedHtml = '<div class="sqm-speeds">';
-            if (sqm.download_speed) speedHtml += '<div class="sqm-speed-item">Descarga: <span class="val">' + escHtml(sqm.download_speed) + ' Kbps</span></div>';
-            if (sqm.upload_speed)   speedHtml += '<div class="sqm-speed-item">Subida:   <span class="val">' + escHtml(sqm.upload_speed) + ' Kbps</span></div>';
-            speedHtml += '</div>';
+            if (enabled && (q.download_speed || q.upload_speed)) {
+                speedHtml = '<div class="sqm-speeds">';
+                if (q.download_speed) speedHtml += '<div class="sqm-speed-item">Descarga: <span class="val">' + escHtml(q.download_speed) + ' Kbps</span></div>';
+                if (q.upload_speed)   speedHtml += '<div class="sqm-speed-item">Subida:   <span class="val">' + escHtml(q.upload_speed) + ' Kbps</span></div>';
+                speedHtml += '</div>';
+            }
+
+            if (q.qdisc) {
+                qdiscHtml = '<span class="sqm-qdisc">' + escHtml(q.qdisc) + '</span>';
+            }
+
+            html +=
+                '<div class="sqm-card">' +
+                    '<div class="sqm-status">' +
+                        '<span class="sqm-dot ' + dotClass + '"></span>' +
+                        'SQM: <strong>' + statusText + '</strong>' +
+                        (q.interface ? ' en ' + escHtml(q.interface) : '') +
+                        qdiscHtml +
+                    '</div>' +
+                    speedHtml +
+                '</div>';
         }
-
-        el.sqm.innerHTML =
-            '<div class="sqm-card">' +
-                '<div class="sqm-status">' +
-                    '<span class="sqm-dot ' + dotClass + '"></span>' +
-                    'SQM: <strong>' + statusText + '</strong>' +
-                    (sqm.interface ? ' en ' + escHtml(sqm.interface) : '') +
-                '</div>' +
-                speedHtml +
-            '</div>';
+        el.sqm.innerHTML = html;
     }
 
     function renderTrafficAdvanced(traffic) {

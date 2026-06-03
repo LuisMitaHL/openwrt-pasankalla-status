@@ -352,6 +352,18 @@ body {
     background: var(--danger);
 }
 
+.sqm-qdisc {
+    display: inline-block;
+    margin-left: auto;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--accent);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.3px;
+}
+
 .sqm-speeds {
     display: flex;
     gap: 24px;
