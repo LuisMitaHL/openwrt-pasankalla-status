@@ -501,7 +501,8 @@
     }
 
     function resetCountdown() {
-        secondsUntilRefresh = 10;
+        // Basic mode: 30s interval to save CPU; Advanced mode: 10s for more responsive detail
+        secondsUntilRefresh = (currentMode === 'basic') ? 30 : 10;
         if (el.countdown) el.countdown.textContent = 'Actualizando en ' + secondsUntilRefresh + 's';
         if (countdownTimer) clearInterval(countdownTimer);
         countdownTimer = setInterval(function() {

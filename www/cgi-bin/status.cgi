@@ -6,8 +6,8 @@
 QUERY_STRING="${QUERY_STRING:-}"
 
 # Parse mode from query string
-mode="basic"
-echo "$QUERY_STRING" | grep -qi "mode=advanced" && mode="advanced"
+display_mode="basic"
+echo "$QUERY_STRING" | grep -qi "mode=advanced" && display_mode="advanced"
 
 # Set JSON content type
 echo "Content-Type: application/json"
@@ -98,11 +98,22 @@ for iface in $iface_list; do
 
     if command -v iwinfo >/dev/null 2>&1; then
         info=$(iwinfo "$iface" info 2>/dev/null)
-        ssid=$(echo "$info" | grep "ESSID:" | sed 's/.*ESSID: *"\(.*\)"/\1/')
+        # Parse all fields with a single awk call (was 9+ separate grep/awk pipelines)
+        eval "$(echo "$info" | awk '
+/^ESSID:/     { sub(/.*ESSID: *"|".*/, ""); gsub(/"/, "\\\""); s=$0 }
+/Channel:/    { ch=$2; fr=$5; gsub(/[().]/, "", fr) }
+/Mode:/       { mo=$2 }
+/Bit Rate:/   { br=$3 " " $4 }
+/Encryption:/ { en=$2 }
+/Signal:/     { sg=$2; ns=$5 }
+/HW Mode\(s\)/ { hw=$NF }
+END {
+    print "ssid=\"" s "\";channel=\"" ch "\";freq=\"" fr "\";mode=\"" mo "\""
+    print "bitrate=\"" br "\";encryption=\"" en "\""
+    print "signal=\"" sg "\";noise=\"" ns "\";hwmode=\"" hw "\""
+}')"
         [ "$ssid" = "unknown" ] && ssid=""
-        channel=$(echo "$info" | grep "Channel:" | awk '{print $2}')
-        freq=$(echo "$info" | grep "Channel:" | awk '{print $5}' | tr -d '().')
-        mode=$(echo "$info" | grep "Mode:" | awk '{print $2}')
+
         # Normalize mode to ap|sta
         case "$mode" in
             Master) mode="ap" ;;
@@ -112,19 +123,11 @@ for iface in $iface_list; do
             Mesh*) mode="mesh" ;;
             *) mode=$(echo "$mode" | tr '[:upper:]' '[:lower:]') ;;
         esac
-        # Get bitrate
-        bitrate=$(echo "$info" | grep "Bit Rate:" | awk '{print $3, $4}')
-        # Get encryption
-        encryption=$(echo "$info" | grep "Encryption:" | awk '{print $2}')
 
-        # Get station count
+        # Get station count (single awk, no grep -c subprocess)
         assoclist=$(iwinfo "$iface" assoclist 2>/dev/null)
-        clients=$(echo "$assoclist" | grep -c "SNR" 2>/dev/null)
+        clients=$(echo "$assoclist" | awk '/SNR/{c++} END{print c}')
         [ -z "$clients" ] && clients=0
-
-        # Get signal/noise from first station
-        signal=$(echo "$info" | grep "Signal:" | awk '{print $2}')
-        noise=$(echo "$info" | grep "Signal:" | awk '{print $5}')
     fi
 
     # Try hostapd_cli for more details if iwinfo didn't give SSID
@@ -384,7 +387,7 @@ sqm_json="[$sqm_list]"
 
 # --- Advanced mode: run wifi-suite.sh ---
 advanced_text=""
-#if [ "$mode" = "advanced" ]; then
+if [ "$display_mode" = "advanced" ]; then
     # Try to find wifi-suite.sh in the same directory, then /www/cgi-bin/
     wsuite=""
     for d in "." "/www/cgi-bin" "/sbin"; do
@@ -394,11 +397,11 @@ advanced_text=""
         fi
     done
     if [ -n "$wsuite" ]; then
-        advanced_text=$($wsuite 2>&1)
+        advanced_text=$($wsuite -l 2>&1)
     else
         advanced_text="wifi-suite.sh not found"
     fi
-#fi
+fi
 advanced_escaped=$(json_escape "$advanced_text")
 
 # --- Final JSON output ---
