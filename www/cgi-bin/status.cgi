@@ -41,6 +41,14 @@ s=$(( uptime_seconds % 60 ))
 [ "$m" -gt 0 ] && uptime_str="${uptime_str}${m}m "
 uptime_str="${uptime_str}${s}s"
 
+# --- Load Average ---
+load_1m="0.00"
+load_5m="0.00"
+load_15m="0.00"
+if [ -f /proc/loadavg ]; then
+    read -r load_1m load_5m load_15m _ _ < /proc/loadavg 2>/dev/null
+fi
+
 # --- Discover wireless interfaces ---
 # Use iwinfo to list interfaces
 wireless_ifaces=""
@@ -323,32 +331,28 @@ SQMEOF
                 sqm_upload=""
                 sqm_qdisc=""
                 ;;
-            *option*enabled*)
+            *option*)
+                key=$(echo "$line" | awk '{print $2}')
                 val=$(echo "$line" | awk '{print $3}' | tr -d "'\"")
-                [ "$val" = "1" ] && sqm_enabled="true"
-                ;;
-            *option*interface*)
-                sqm_iface=$(echo "$line" | awk '{print $3}' | tr -d "'\"")
-                ;;
-            *option*download*)
-                sqm_download=$(echo "$line" | awk '{print $3}' | tr -d "'\"")
-                ;;
-            *option*upload*)
-                sqm_upload=$(echo "$line" | awk '{print $3}' | tr -d "'\"")
-                ;;
-            *option*qdisc*)
-                sqm_qdisc=$(echo "$line" | awk '{print $3}' | tr -d "'\"")
-                ;;
-            *option*script*)
-                # Fallback: extract qdisc name from script filename
-                script_val=$(echo "$line" | awk '{print $3}' | tr -d "'\"")
-                case "$script_val" in
-                    *cake*) sqm_qdisc="cake" ;;
-                    *fq_codel*) sqm_qdisc="fq_codel" ;;
-                    *nfq_codel*) sqm_qdisc="nfq_codel" ;;
-                    *fq_pie*) sqm_qdisc="fq_pie" ;;
-                    *pie*) sqm_qdisc="pie" ;;
-                    *) sqm_qdisc="$script_val" ;;
+                case "$key" in
+                    enabled) [ "$val" = "1" ] && sqm_enabled="true" ;;
+                    interface) sqm_iface="$val" ;;
+                    download) sqm_download="$val" ;;
+                    upload) sqm_upload="$val" ;;
+                    qdisc) sqm_qdisc="$val" ;;
+                    script)
+                        # Only use script as fallback if qdisc was not explicitly set
+                        if [ -z "$sqm_qdisc" ]; then
+                            case "$val" in
+                                *cake*) sqm_qdisc="cake" ;;
+                                *fq_codel*) sqm_qdisc="fq_codel" ;;
+                                *nfq_codel*) sqm_qdisc="nfq_codel" ;;
+                                *fq_pie*) sqm_qdisc="fq_pie" ;;
+                                *pie*) sqm_qdisc="pie" ;;
+                                *) sqm_qdisc="$val" ;;
+                            esac
+                        fi
+                        ;;
                 esac
                 ;;
         esac
@@ -411,6 +415,12 @@ cat << EOF
         "total_tx_gb": ${total_tx_gb:-0},
         "total_gb": ${total_gb:-0}
     },
-    "advanced": "$advanced_escaped"
+    "advanced": "$advanced_escaped",
+    "load_avg": {
+        "load_1m": $load_1m,
+        "load_5m": $load_5m,
+        "load_15m": $load_15m,
+        "cpu_cores": $(grep -c ^processor /proc/cpuinfo 2>/dev/null || echo 1)
+    }
 }
 EOF

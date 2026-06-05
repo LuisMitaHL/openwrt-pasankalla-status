@@ -117,8 +117,43 @@
 
     function renderBasic(data) {
         // Hide sections not used in basic mode
-        el.summarySection.className = 'section hidden';
+        el.summarySection.className = 'section';
         el.sqmSection.className = 'section hidden';
+
+        // Load average (basic shows only 1m)
+        var loadHtml = '';
+        if (data.load_avg) {
+            var load1m = parseFloat(data.load_avg.load_1m) || 0;
+            var cores = parseInt(data.load_avg.cpu_cores) || 1;
+            var usagePct = Math.min(100, Math.round((load1m / cores) * 100));
+
+            var loadClass, loadText;
+            if (usagePct >= 90) {
+                loadClass = 'load-critical';
+                loadText = 'Cr\u00EDtico';
+            } else if (usagePct >= 70) {
+                loadClass = 'load-warning';
+                loadText = 'Precauci\u00F3n';
+            } else {
+                loadClass = 'load-normal';
+                loadText = 'Normal';
+            }
+
+            loadHtml =
+                '<div class="summary-card ' + loadClass + '">' +
+                    '<div class="label">Carga del Sistema (1m)</div>' +
+                    '<div class="value">' + usagePct + '%</div>' +
+                    '<div class="load-interpretation">' + loadText + '</div>' +
+                '</div>';
+        } else {
+            loadHtml =
+                '<div class="summary-card">' +
+                    '<div class="label">Carga del Sistema (1m)</div>' +
+                    '<div class="value">N/A</div>' +
+                '</div>';
+        }
+
+        el.summary.innerHTML = loadHtml;
 
         // Interfaces: show simplified per-radio cards
         renderInterfacesBasic(data.interfaces);
@@ -297,6 +332,13 @@
                 totalClients += ifaces[i].clients || 0;
             }
         }
+        var loadHtml = '';
+        if (data.load_avg) {
+            loadHtml = '<div class="summary-card">' +
+                '<div class="label">Carga del Sistema</div>' +
+                '<div class="value" style="font-size:0.85rem;">1m: ' + data.load_avg.load_1m + ' / 5m: ' + data.load_avg.load_5m + ' / 15m: ' + data.load_avg.load_15m + '</div>' +
+            '</div>';
+        }
         el.summary.innerHTML =
             '<div class="summary-card">' +
                 '<div class="label">Router</div>' +
@@ -313,7 +355,8 @@
             '<div class="summary-card">' +
                 '<div class="label">Datos Totales</div>' +
                 '<div class="value" style="font-size:1rem;">' + (data.traffic ? data.traffic.total_gb : '0') + ' GB</div>' +
-            '</div>';
+            '</div>' +
+            loadHtml;
     }
 
     function renderInterfacesAdvanced(interfaces) {

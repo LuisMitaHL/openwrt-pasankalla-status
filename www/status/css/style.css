@@ -146,6 +146,52 @@ body {
     font-size: 1rem;
 }
 
+/* Load average color classes */
+.summary-card.load-normal {
+    border-left: 4px solid var(--success);
+}
+.summary-card.load-normal .value {
+    color: var(--success);
+}
+
+.summary-card.load-warning {
+    border-left: 4px solid var(--warning);
+}
+.summary-card.load-warning .value {
+    color: var(--warning);
+}
+
+.summary-card.load-critical {
+    border-left: 4px solid var(--danger);
+    animation: pulse-border 1.5s infinite;
+}
+.summary-card.load-critical .value {
+    color: var(--danger);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse-border {
+    0%, 100% { border-left-color: var(--danger); }
+    50% { border-left-color: rgba(231, 76, 60, 0.3); }
+}
+
+.load-interpretation {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+    font-weight: 500;
+}
+.summary-card.load-warning .load-interpretation {
+    color: var(--warning);
+}
+.summary-card.load-critical .load-interpretation {
+    color: var(--danger);
+    font-weight: 700;
+}
+.summary-card.load-normal .load-interpretation {
+    color: var(--success);
+}
+
 /* Section Title */
 .section-title {
     font-size: 1.1rem;
